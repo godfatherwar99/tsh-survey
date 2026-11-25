@@ -27,11 +27,15 @@
   .q p{margin:0 0 12px;font-size:15px;line-height:1.5;font-weight:600}
   .scale{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
   .scale input{position:absolute;opacity:0;pointer-events:none}
-  .scale label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-    min-height:64px;border:1.5px solid #E5E7EB;border-radius:12px;cursor:pointer;user-select:none;
-    font-size:11px;color:var(--muted);background:#fff;transition:all .12s}
-  .scale label b{font-size:22px;line-height:1}
-  .scale input:checked + label{border-color:var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:700}
+  .scale label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    min-height:92px;padding:8px 2px;border:1.5px solid #E5E7EB;border-radius:12px;cursor:pointer;user-select:none;
+    font-size:11px;color:var(--muted);background:#fff;transition:all .12s;text-align:center;line-height:1.2}
+  .scale .face{width:40px;height:40px;display:block;transition:transform .12s}
+  .scale .num{font-size:15px;font-weight:700;color:var(--ink)}
+  .scale input:checked + label{border-color:var(--c);border-width:2.5px;background:#F9FAFB;color:var(--ink);font-weight:700;
+    box-shadow:0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent)}
+  .scale input:checked + label .face{transform:scale(1.12)}
+  .scale input:not(:checked) + label .face{opacity:.92}
   .scale input:focus-visible + label{outline:3px solid #99F6E4}
   .legend{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px}
   textarea{width:100%;min-height:96px;border:1.5px solid #E5E7EB;border-radius:12px;padding:10px 12px;
@@ -56,7 +60,6 @@
   <header>
     <div class="h">🏥 โรงพยาบาลทุ่งสง</div>
     <h1>แบบประเมินความพึงพอใจการให้บริการ</h1>
-    <span class="unit" id="unitTag" hidden></span>
   </header>
 
   <main id="formView">
@@ -98,20 +101,33 @@
     'ความสะอาด ปลอดภัย และสิ่งอำนวยความสะดวก',
     'โดยภาพรวม มีความพึงพอใจต่อการรับบริการ'
   ];
+  // หน้ายิ้มวงกลมสี (SVG) : 5 เขียวเข้ม → 1 แดง
   var SCALE = [
-    { v: 5, e: '😍', t: 'มากที่สุด' },
-    { v: 4, e: '🙂', t: 'มาก' },
-    { v: 3, e: '😐', t: 'ปานกลาง' },
-    { v: 2, e: '🙁', t: 'น้อย' },
-    { v: 1, e: '😞', t: 'น้อยที่สุด' }
+    { v: 5, c: '#1B5E20', f: '#FFFFFF', eyes: 'x', mouth: 'grin',  t: 'มากที่สุด' },
+    { v: 4, c: '#43A047', f: '#14361A', eyes: 'o', mouth: 'smile', t: 'มาก' },
+    { v: 3, c: '#FDD835', f: '#3D3300', eyes: 'o', mouth: 'flat',  t: 'ปานกลาง' },
+    { v: 2, c: '#FB8C00', f: '#3D2200', eyes: 'o', mouth: 'frown', t: 'น้อย' },
+    { v: 1, c: '#E53935', f: '#3B0A09', eyes: 'x', mouth: 'frown', t: 'น้อยที่สุด' }
   ];
+  function face(s) {
+    var eyes = s.eyes === 'x'
+      ? '<path d="M12 14l4 2.5-4 2.5M28 14l-4 2.5 4 2.5" fill="none" stroke="' + s.f + '" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'
+      : '<circle cx="14.5" cy="16" r="2.4" fill="' + s.f + '"/><circle cx="25.5" cy="16" r="2.4" fill="' + s.f + '"/>';
+    var mouths = {
+      grin:  '<path d="M12 23h16a8 8 0 0 1-16 0z" fill="' + s.f + '"/>',
+      smile: '<path d="M13 24q7 6 14 0" fill="none" stroke="' + s.f + '" stroke-width="2.4" stroke-linecap="round"/>',
+      flat:  '<path d="M14 26h12" fill="none" stroke="' + s.f + '" stroke-width="2.4" stroke-linecap="round"/>',
+      frown: '<path d="M13 28q7-6 14 0" fill="none" stroke="' + s.f + '" stroke-width="2.4" stroke-linecap="round"/>'
+    };
+    return '<svg class="face" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="' + s.c + '"/>' +
+           eyes + mouths[s.mouth] + '</svg>';
+  }
 
   var qs = new URLSearchParams(location.search);
   var token = (qs.get('t') || '').toLowerCase().replace(/[^0-9a-f]/g, '').slice(0, 64);
-  var unit = (qs.get('unit') || '').trim().slice(0, 150);
-  var doneKey = 'tsh_survey_done_' + (token || 'unit_' + unit);
-
-  if (unit) { var tag = document.getElementById('unitTag'); tag.textContent = unit; tag.hidden = false; }
+  // ไม่แสดง/ไม่ส่งชื่อแผนกจากหน้าเว็บ — ระบบหาแผนกเองจาก token (Token_Map ใน Apps Script และฐานข้อมูล รพ.)
+  var unit = '';
+  var doneKey = 'tsh_survey_done_' + (token || 'no_token');
 
   // เคยตอบแล้วจากเครื่องนี้ → แสดงหน้าขอบคุณ
   try { if (token && localStorage.getItem(doneKey)) showDone(); } catch (e) {}
@@ -123,7 +139,8 @@
     SCALE.forEach(function (s) {
       var id = 'q' + n + '_' + s.v;
       html += '<input type="radio" name="q' + n + '" id="' + id + '" value="' + s.v + '">' +
-              '<label for="' + id + '"><b>' + s.e + '</b>' + s.t + '</label>';
+              '<label for="' + id + '" style="--c:' + s.c + '">' + face(s) +
+              '<span class="num">' + s.v + '</span>' + s.t + '</label>';
     });
     box.insertAdjacentHTML('beforeend', html + '</div></div>');
   });
