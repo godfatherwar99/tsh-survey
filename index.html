@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>แบบประเมินความพึงพอใจ - โรงพยาบาลทุ่งสง</title>
+<style>
+  :root{
+    --brand:#064E3B; --brand-2:#0F766E; --brand-soft:#ECFDF5; --line:#D1FAE5;
+    --ink:#111827; --muted:#4B5563; --bg:#F8FAFC; --card:#FFFFFF; --danger:#B91C1C;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:"Sarabun","Noto Sans Thai","Leelawadee UI","Tahoma",system-ui,sans-serif;
+    -webkit-text-size-adjust:100%;}
+  .wrap{max-width:560px;margin:0 auto;padding:0 0 32px}
+  header{background:var(--brand);color:#fff;padding:20px 18px 18px;border-radius:0 0 20px 20px}
+  header .h{font-size:13px;opacity:.85;letter-spacing:.2px}
+  header h1{font-size:20px;margin:4px 0 0;line-height:1.35}
+  .unit{display:inline-block;margin-top:10px;background:rgba(255,255,255,.14);padding:5px 10px;border-radius:999px;font-size:13px}
+  main{padding:14px}
+  .intro{font-size:14px;color:var(--muted);line-height:1.6;margin:4px 2px 14px}
+  .q{background:var(--card);border:1px solid #E5E7EB;border-radius:16px;padding:14px;margin-bottom:12px}
+  .q.missing{border-color:var(--danger);box-shadow:0 0 0 3px rgba(185,28,28,.08)}
+  .q p{margin:0 0 12px;font-size:15px;line-height:1.5;font-weight:600}
+  .scale{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .scale input{position:absolute;opacity:0;pointer-events:none}
+  .scale label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    min-height:64px;border:1.5px solid #E5E7EB;border-radius:12px;cursor:pointer;user-select:none;
+    font-size:11px;color:var(--muted);background:#fff;transition:all .12s}
+  .scale label b{font-size:22px;line-height:1}
+  .scale input:checked + label{border-color:var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:700}
+  .scale input:focus-visible + label{outline:3px solid #99F6E4}
+  .legend{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px}
+  textarea{width:100%;min-height:96px;border:1.5px solid #E5E7EB;border-radius:12px;padding:10px 12px;
+    font:inherit;font-size:15px;resize:vertical}
+  textarea:focus{outline:none;border-color:var(--brand-2)}
+  .count{font-size:11px;color:var(--muted);text-align:right;margin-top:4px}
+  button{width:100%;border:0;border-radius:14px;background:var(--brand);color:#fff;font:inherit;
+    font-size:17px;font-weight:700;padding:15px;margin-top:6px;cursor:pointer}
+  button[disabled]{opacity:.6;cursor:wait}
+  .err{color:var(--danger);font-size:14px;margin:10px 2px 0;min-height:1em;line-height:1.5}
+  .done{text-align:center;padding:40px 18px}
+  .done .ok{width:72px;height:72px;border-radius:50%;background:var(--brand-soft);color:var(--brand);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:38px}
+  .done h2{margin:0 0 8px;font-size:22px}
+  .done p{color:var(--muted);line-height:1.6;margin:0}
+  .foot{font-size:11px;color:#9CA3AF;text-align:center;margin-top:18px;line-height:1.6}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="h">🏥 โรงพยาบาลทุ่งสง</div>
+    <h1>แบบประเมินความพึงพอใจการให้บริการ</h1>
+    <span class="unit" id="unitTag" hidden></span>
+  </header>
+
+  <main id="formView">
+    <p class="intro">ขอบคุณที่มาใช้บริการ กรุณาให้คะแนนการรับบริการครั้งนี้ ใช้เวลาไม่ถึง 1 นาที
+      คำตอบของท่านไม่ระบุชื่อ และจะนำไปใช้พัฒนาบริการเท่านั้น</p>
+
+    <form id="f" novalidate>
+      <div id="questions"></div>
+
+      <div class="q">
+        <p>ข้อเสนอแนะเพิ่มเติม (ถ้ามี)</p>
+        <textarea id="comment" maxlength="1000" placeholder="สิ่งที่ประทับใจ หรือสิ่งที่อยากให้ปรับปรุง"></textarea>
+        <div class="count"><span id="cc">0</span>/1000</div>
+      </div>
+
+      <button type="submit" id="btn">ส่งแบบประเมิน</button>
+      <div class="err" id="err" role="alert"></div>
+    </form>
+    <div class="foot">ข้อมูลนี้ใช้เพื่อการพัฒนาคุณภาพบริการของโรงพยาบาลทุ่งสงเท่านั้น</div>
+  </main>
+
+  <section class="done" id="doneView" hidden>
+    <div class="ok">✓</div>
+    <h2>ขอบคุณสำหรับการประเมิน</h2>
+    <p>โรงพยาบาลทุ่งสงได้รับความคิดเห็นของท่านแล้ว<br>และจะนำไปพัฒนาบริการให้ดียิ่งขึ้น</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  // ===== ตั้งค่า: URL ของ Apps Script (Deployment "แบบประเมินผู้ป่วย v2") =====
+  var API_URL = 'https://script.google.com/macros/s/AKfycbyEr4HdFNZOGcjlnah-l8hH5Zs5ZQ9BvN992gnEnur75X9VaTxcig-9yi9nUk5ps7bm/exec';
+
+  var QUESTIONS = [
+    'ความสะดวกในขั้นตอนการเข้ารับบริการและการรอคอย',
+    'ความรวดเร็วในขั้นตอนการให้บริการของเจ้าหน้าที่',
+    'เจ้าหน้าที่ให้บริการด้วยความสุภาพและเอาใจใส่',
+    'ได้รับข้อมูลหรือคำแนะนำทางสุขภาพที่เข้าใจง่าย',
+    'ความสะอาด ปลอดภัย และสิ่งอำนวยความสะดวก',
+    'โดยภาพรวม มีความพึงพอใจต่อการรับบริการ'
+  ];
+  var SCALE = [
+    { v: 5, e: '😍', t: 'มากที่สุด' },
+    { v: 4, e: '🙂', t: 'มาก' },
+    { v: 3, e: '😐', t: 'ปานกลาง' },
+    { v: 2, e: '🙁', t: 'น้อย' },
+    { v: 1, e: '😞', t: 'น้อยที่สุด' }
+  ];
+
+  var qs = new URLSearchParams(location.search);
+  var token = (qs.get('t') || '').toLowerCase().replace(/[^0-9a-f]/g, '').slice(0, 64);
+  var unit = (qs.get('unit') || '').trim().slice(0, 150);
+  var doneKey = 'tsh_survey_done_' + (token || 'unit_' + unit);
+
+  if (unit) { var tag = document.getElementById('unitTag'); tag.textContent = unit; tag.hidden = false; }
+
+  // เคยตอบแล้วจากเครื่องนี้ → แสดงหน้าขอบคุณ
+  try { if (token && localStorage.getItem(doneKey)) showDone(); } catch (e) {}
+
+  // สร้างคำถาม
+  var box = document.getElementById('questions');
+  QUESTIONS.forEach(function (text, i) {
+    var n = i + 1, html = '<div class="q" id="q' + n + 'box"><p>' + n + '. ' + text + '</p><div class="scale">';
+    SCALE.forEach(function (s) {
+      var id = 'q' + n + '_' + s.v;
+      html += '<input type="radio" name="q' + n + '" id="' + id + '" value="' + s.v + '">' +
+              '<label for="' + id + '"><b>' + s.e + '</b>' + s.t + '</label>';
+    });
+    box.insertAdjacentHTML('beforeend', html + '</div></div>');
+  });
+  box.addEventListener('change', function (ev) {
+    var b = ev.target.closest('.q'); if (b) b.classList.remove('missing');
+  });
+
+  var cm = document.getElementById('comment');
+  cm.addEventListener('input', function () { document.getElementById('cc').textContent = cm.value.length; });
+
+  document.getElementById('f').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var err = document.getElementById('err'); err.textContent = '';
+    var payload = { action: 'submit_survey', token: token, unit: unit, comment: cm.value.trim() };
+    var firstMissing = null;
+    for (var n = 1; n <= 6; n++) {
+      var c = document.querySelector('input[name="q' + n + '"]:checked');
+      if (!c) { document.getElementById('q' + n + 'box').classList.add('missing'); firstMissing = firstMissing || n; }
+      else payload['q' + n] = Number(c.value);
+    }
+    if (firstMissing) {
+      err.textContent = 'กรุณาให้คะแนนให้ครบทุกข้อ';
+      document.getElementById('q' + firstMissing + 'box').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    var btn = document.getElementById('btn');
+    btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+
+    // ส่งแบบ text/plain และไม่แนบ cookie → ไม่ติดปัญหาบัญชี Google ที่ล็อกอินไว้ในเครื่อง
+    fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      credentials: 'omit',
+      redirect: 'follow'
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      if (res && res.success) {
+        try { localStorage.setItem(doneKey, '1'); } catch (e) {}
+        showDone();
+      } else {
+        throw new Error((res && res.error) || 'unknown');
+      }
+    })
+    .catch(function () {
+      err.textContent = 'ส่งไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วกดส่งอีกครั้ง';
+      btn.disabled = false; btn.textContent = 'ส่งแบบประเมิน';
+    });
+  });
+
+  function showDone() {
+    document.getElementById('formView').hidden = true;
+    document.getElementById('doneView').hidden = false;
+    window.scrollTo(0, 0);
+  }
+})();
+</script>
+</body>
+</html>
